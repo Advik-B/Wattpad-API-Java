@@ -3,7 +3,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
-group = "dev.advik"
+group = "io.github.advik-b"
 version = "1.1"
 
 repositories {
@@ -26,8 +26,6 @@ java {
     sourceCompatibility = JavaVersion.VERSION_11 // Good balance for library compatibility
     targetCompatibility = JavaVersion.VERSION_11
 
-    // Automatically add Javadoc and Sources jars when publishing
-    withJavadocJar()
     withSourcesJar()
 }
 
