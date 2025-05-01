@@ -21,7 +21,10 @@ jobs:
 
       - name: Configure Gradle
         uses: gradle/actions/setup-gradle@v3
-
+      
+      - name: Grant execute permission for Gradle wrapper
+        run: chmod +x gradlew
+      
       - name: Publish package
         env:
           USERNAME: ${{ secrets.GITHUB_ACTOR }}
