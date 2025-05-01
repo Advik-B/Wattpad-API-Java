@@ -9,5 +9,5 @@ public final class WattpadConstants {
             "(KHTML, like Gecko) " +
             "Chrome/123.0.0.0 Safari/537.36 " + // Keep agent somewhat current
             "WattpadClient/Java/1.0"; // Add library identifier
-    public static final String DEFAULT_CACHE_DIR = "capacitor";
+    public static final String DEFAULT_CACHE_DIR = "capacitor.jar";
 }
