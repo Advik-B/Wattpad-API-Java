@@ -145,7 +145,7 @@ This project is licensed under the [MIT License](LICENSE.txt).
 
 For questions or support, feel free to reach out:
 - **Author**: Advik
-- **GitHub**: [github.com/your-username](https://github.com/Advik-B)
+- **GitHub**: [github.com/Advik-B](https://github.com/Advik-B)
 
 ---
 
