@@ -30,6 +30,14 @@ java {
     withSourcesJar()
 }
 
-tasks.test {
-    useJUnitPlatform()
+
+// Add manifest attributes for JAR
+tasks.jar {
+    manifest {
+        attributes(
+            "Implementation-Title" to project.name,
+            "Implementation-Version" to project.version,
+            "Main-Class" to "dev.advik.Main" // Adjust this if your main class is different
+        )
+    }
 }
