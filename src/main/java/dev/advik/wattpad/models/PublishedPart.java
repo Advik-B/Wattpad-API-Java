@@ -1,35 +1,22 @@
+// Example structure (adjust field names based on actual JSON)
 package dev.advik.wattpad.models;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
-import com.google.gson.JsonObject;
+public class PublishedPart {
+    // Ensure field names match JSON keys or use @SerializedName
+    private long id;
+    private String title;
+    private LocalDateTime createDate; // This should be LocalDateTime
 
-public final class PublishedPart {
-    private final int id;
-    private final LocalDateTime createDate;
+    // Getters (and potentially a constructor/setters if needed by Gson)
+    public long getId() { return id; }
+    public String getTitle() { return title; }
+    public LocalDateTime getCreateDate() { return createDate; }
 
-    public PublishedPart(int id, LocalDateTime createDate) {
-        this.id = id;
-        this.createDate = createDate;
-    }
-
-    public static PublishedPart fromJson(JsonObject json) {
-        int id = json.get("id").getAsInt();
-
-        String dateString = json.get("createDate").getAsString();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
-        LocalDateTime createDate = LocalDateTime.parse(dateString, formatter);
-
-        return new PublishedPart(id, createDate);
-    }
-
-    // Optional getters
-    public int getId() {
-        return id;
-    }
-
-    public LocalDateTime getCreateDate() {
-        return createDate;
-    }
+    // Gson needs a no-arg constructor or setters if fields aren't final
+    // Or, if fields are final, a constructor matching the fields is needed,
+    // but deserialization might require custom logic or adapters anyway.
+    // For simplicity with default Gson, often non-final fields with getters/setters
+    // or a no-arg constructor are used.
 }
