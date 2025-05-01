@@ -101,7 +101,7 @@ public final class Story {
     }
 
     // --- Custom Gson Deserializer ---
-    public static class StoryDeserializer implements JsonDeserializer<Story> {
+    public class StoryDeserializer implements JsonDeserializer<Story> {
         @Override
         public Story deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
             JsonObject jsonObj = json.getAsJsonObject();

@@ -6,6 +6,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import dev.advik.wattpad.adapters.LocalDateTimeAdapter;
 import dev.advik.wattpad.exceptions.*;
 import dev.advik.wattpad.internal.SimpleDiskCache;
 import dev.advik.wattpad.models.*;
@@ -20,6 +21,7 @@ import org.jsoup.select.Elements;
 
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -99,6 +101,12 @@ public class WattpadClient {
         this.gson = new GsonBuilder()
                 // Register type adapters if needed (e.g., for LocalDateTime, custom Story parsing)
                 .registerTypeAdapter(Story.class, new Story.StoryDeserializer()) // Use the Story's own deserializer
+                .registerTypeAdapter(LocalDateTime.class, new JsonDeserializer<LocalDateTime>() {
+        @Override
+        public LocalDateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) {
+            return LocalDateTime.parse(json.getAsString());
+        }
+    })
                 .create();
 
         if (this.useCache) {
