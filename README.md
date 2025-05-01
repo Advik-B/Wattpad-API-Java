@@ -25,22 +25,7 @@ A powerful and easy-to-use Java client for interacting with Wattpad's API. This 
 - Java 17 or higher
 - Maven or Gradle for dependency management
 
-### Using Maven
-Add the following dependency to your `pom.xml`:
-```xml
-<dependency>
-    <groupId>dev.advik</groupId>
-    <artifactId>wattpad-api</artifactId>
-    <version>1.0.0</version>
-</dependency>
-```
-
-### Using Gradle
-Add the following to your `build.gradle`:
-```gradle
-implementation 'dev.advik:wattpad-api:1.0.0'
-```
-
+## TODO
 ---
 
 ## 🚀 Usage
