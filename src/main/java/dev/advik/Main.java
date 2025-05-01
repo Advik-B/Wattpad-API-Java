@@ -38,18 +38,7 @@ public class Main {
 
             // --- Render and Print a Part (e.g., the first actual chapter) ---
             if (!story.getParts().isEmpty()) {
-                Part partToRender = null;
-                // Find the first part that isn't an Author's Note or Aesthetics (simple title check)
-                for (Part p : story.getParts()) {
-                    String lowerTitle = p.getTitle().toLowerCase();
-                    if (!lowerTitle.contains("author's note") && !lowerTitle.contains("aesthetics") && !lowerTitle.contains("prologue")) {
-                        partToRender = p;
-                        break;
-                    }
-                }
-                if (partToRender == null) {
-                    partToRender = story.getParts().get(0); // Fallback to first part
-                }
+                Part partToRender = getPart(story);
 
 
                 if (partToRender != null) {
@@ -62,13 +51,7 @@ public class Main {
                             case TEXT:
                                 StringBuilder lineBuilder = new StringBuilder();
                                 for (HTMLWord word : contentBlock.getTextData()) {
-                                    // Basic console formatting (won't look great without ANSI codes)
-                                    switch (word.getStyle()) {
-                                        case BOLD: lineBuilder.append("**").append(word.getData()).append("**"); break;
-                                        case ITALIC: lineBuilder.append("*").append(word.getData()).append("*"); break;
-                                        default: lineBuilder.append(word.getData()); break;
-                                    }
-                                    lineBuilder.append(" "); // Add space between words/elements
+                                    lineBuilder.append(word.getData());
                                 }
                                 System.out.println(lineBuilder.toString().trim());
                                 break;
@@ -95,6 +78,22 @@ public class Main {
             System.err.println("\nAn error occurred:");
             e.printStackTrace();
         }
+    }
+
+    private static Part getPart(Story story) {
+        Part partToRender = null;
+        // Find the first part that isn't an Author's Note or Aesthetics (simple title check)
+        for (Part p : story.getParts()) {
+            String lowerTitle = p.getTitle().toLowerCase();
+            if (!lowerTitle.contains("author's note") && !lowerTitle.contains("aesthetics") && !lowerTitle.contains("prologue")) {
+                partToRender = p;
+                break;
+            }
+        }
+        if (partToRender == null) {
+            partToRender = story.getParts().get(0); // Fallback to first part
+        }
+        return partToRender;
     }
 
     private static String truncate(String text, int maxLength) {
