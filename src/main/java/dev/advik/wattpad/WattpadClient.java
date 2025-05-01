@@ -1,12 +1,8 @@
 package dev.advik.wattpad;
 
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
-import dev.advik.wattpad.adapters.LocalDateTimeAdapter;
+import com.google.gson.*;
+import dev.advik.wattpad.adapters.LocalDateTimeAdapter; // Assuming you might extract this
 import dev.advik.wattpad.exceptions.*;
 import dev.advik.wattpad.internal.SimpleDiskCache;
 import dev.advik.wattpad.models.*;
@@ -21,7 +17,10 @@ import org.jsoup.select.Elements;
 
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime; // Import for robust parsing
+import java.time.format.DateTimeParseException; // Import for error handling
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 public class WattpadClient {
 
     private final OkHttpClient httpClient;
-    private final Gson gson;
+    private final Gson gson; // Make this final
     private final String userAgent;
     private final boolean useCache;
     private final SimpleDiskCache cache; // Can be null if useCache is false
@@ -98,15 +97,34 @@ public class WattpadClient {
                     .build();
         }
 
+        // Consider extracting the LocalDateTime deserializer to its own class (e.g., LocalDateTimeAdapter)
+        // for better organization if it gets more complex.
         this.gson = new GsonBuilder()
-                // Register type adapters if needed (e.g., for LocalDateTime, custom Story parsing)
-                .registerTypeAdapter(Story.class, new Story.StoryDeserializer()) // Use the Story's own deserializer
+                .registerTypeAdapter(Story.class, new Story.StoryDeserializer())
+                // Register a more robust LocalDateTime deserializer
                 .registerTypeAdapter(LocalDateTime.class, new JsonDeserializer<LocalDateTime>() {
-        @Override
-        public LocalDateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) {
-            return LocalDateTime.parse(json.getAsString());
-        }
-    })
+                    @Override
+                    public LocalDateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                        if (json == null || json.isJsonNull()) {
+                            return null; // Handle null JSON values
+                        }
+                        String dateString = json.getAsString();
+                        try {
+                            // Try parsing with offset first (e.g., " Z" or "+00:00")
+                            return OffsetDateTime.parse(dateString).toLocalDateTime();
+                        } catch (DateTimeParseException e1) {
+                            try {
+                                // Fallback to parsing without offset
+                                return LocalDateTime.parse(dateString);
+                            } catch (DateTimeParseException e2) {
+                                // Combine exceptions for better debugging info
+                                throw new JsonParseException("Could not parse date string: '" + dateString + "'", e2);
+                            }
+                        }
+                    }
+                })
+                // Add other adapters if needed (e.g., for User if you switch from static factory)
+                // .registerTypeAdapter(User.class, new UserDeserializer())
                 .create();
 
         if (this.useCache) {
@@ -170,8 +188,19 @@ public class WattpadClient {
         String rawResponse = fetchRaw(url, true); // Use cache for JSON API calls
 
         try {
-            JsonObject jsonObject = JsonParser.parseString(rawResponse).getAsJsonObject();
-            // Check for Wattpad API specific errors (example structure)
+            JsonElement parsedElement = JsonParser.parseString(rawResponse);
+            if (!parsedElement.isJsonObject()) {
+                throw new NotJsonException("Expected JSON object but got different structure for URL: " + url, rawResponse, null);
+            }
+            JsonObject jsonObject = parsedElement.getAsJsonObject();
+
+            // Check for Wattpad API specific errors (example structure - adjust if needed)
+            if (jsonObject.has("error") && jsonObject.get("error").isJsonPrimitive()) {
+                String errorMsg = jsonObject.get("error").getAsString();
+                int code = jsonObject.has("code") ? jsonObject.get("code").getAsInt() : -1; // Example
+                throw new APIException("API returned an error: " + errorMsg + " (Code: " + code + ")", jsonObject);
+            }
+            // You might have other error formats to check for
             if (jsonObject.has("error_code")) { // Adjust based on actual API error structure
                 throw new APIException("API returned an error", jsonObject);
             }
@@ -179,7 +208,7 @@ public class WattpadClient {
         } catch (JsonSyntaxException e) {
             throw new NotJsonException("Failed to parse response as JSON for URL: " + url, rawResponse, e);
         } catch (IllegalStateException e) {
-            // Thrown if the root element is not a JSON object
+            // Should be caught by the isJsonObject check above, but keep as fallback
             throw new NotJsonException("Expected JSON object but got different structure for URL: " + url, rawResponse, e);
         }
     }
@@ -190,14 +219,15 @@ public class WattpadClient {
     public Story getStoryById(long storyId) {
         HttpUrl url = WattpadUrls.storyById(storyId);
         JsonObject jsonResponse = fetchJson(url);
-        return Story.fromJsonStory(jsonResponse);
+        // Modified: Pass the configured gson instance
+        return Story.fromJsonStory(jsonResponse, this.gson);
     }
 
     public Story getStoryByPartId(long partId) {
         HttpUrl url = WattpadUrls.partById(partId);
         JsonObject jsonResponse = fetchJson(url);
-        // The part response nests the story under "group"
-        return Story.fromJsonPartResponse(jsonResponse);
+        // Modified: Pass the configured gson instance
+        return Story.fromJsonPartResponse(jsonResponse, this.gson);
     }
 
     /** Internal method to render a part, called by Part.renderWith */
@@ -213,20 +243,19 @@ public class WattpadClient {
             // Attempt to parse, assuming it might be relative or absolute
             textFetchUrl = HttpUrl.get(WattpadConstants.BASE_URL).resolve(textUrlString);
             if (textFetchUrl == null) {
-                throw new IllegalArgumentException("Could not resolve text URL");
+                throw new IllegalArgumentException("Could not resolve text URL: " + textUrlString);
             }
         } catch (IllegalArgumentException e) {
             throw new WattpadException("Invalid text URL format for part " + part.getId() + ": " + textUrlString, e);
         }
 
 
-        // Fetch the HTML content - Don't cache part text aggressively by default? Or use different cache key?
-        // Let's allow caching here. The URL itself is the key.
+        // Fetch the HTML content - Allow caching.
         String htmlContent = fetchRaw(textFetchUrl, true);
 
         // Parse HTML using Jsoup
-        Document doc = Jsoup.parse(htmlContent);
-        Elements paragraphs = doc.select("p"); // Select all <p> tags
+        Document doc = Jsoup.parse(htmlContent, textFetchUrl.toString()); // Provide base URI for abs:src
+        Elements paragraphs = doc.select("p[data-p-id]"); // Select only paragraphs with Wattpad data-p-id
 
         List<HTMLContent> contentStack = new ArrayList<>();
 
@@ -235,39 +264,23 @@ public class WattpadClient {
             Elements images = p.select("img[src]"); // Find images with src attribute
             if (!images.isEmpty()) {
                 for (Element img : images) {
-                    String imageUrl = img.attr("abs:src"); // Get absolute URL
+                    // Use abs:src to resolve relative URLs against the base URI provided to Jsoup.parse
+                    String imageUrl = img.attr("abs:src");
                     if (imageUrl != null && !imageUrl.isEmpty()) {
                         contentStack.add(new HTMLContent(imageUrl));
                     }
                 }
                 // If the <p> tag ONLY contained images (or whitespace), don't process text.
-                // If it contained text *around* images, JSoup handles it below.
-                // This simple approach might duplicate images if they are inside complex <p> tags. Refine if needed.
-                continue; // Move to next paragraph after handling image(s) in this one
-            }
-
-            // If no image, process as text content
-            List<HTMLWord> words = new ArrayList<>();
-            for (Node node : p.childNodes()) {
-                if (node instanceof TextNode) {
-                    String text = ((TextNode) node).text().trim();
-                    if (!text.isEmpty()) {
-                        words.add(new HTMLWord(text, HTMLStyle.GENERAL));
-                    }
-                } else if (node instanceof Element) {
-                    Element element = (Element) node;
-                    String text = element.text().trim();
-                    if (!text.isEmpty()) {
-                        HTMLStyle style = HTMLStyle.GENERAL;
-                        if (element.tagName().equalsIgnoreCase("b") || element.tagName().equalsIgnoreCase("strong")) {
-                            style = HTMLStyle.BOLD;
-                        } else if (element.tagName().equalsIgnoreCase("i") || element.tagName().equalsIgnoreCase("em")) {
-                            style = HTMLStyle.ITALIC;
-                        }
-                        words.add(new HTMLWord(text, style));
-                    }
+                // Jsoup's text() method correctly extracts text even around images if mixed.
+                // This check prevents adding empty text blocks if a <p> only has an <img>.
+                if (p.text().trim().isEmpty()) {
+                    continue; // Move to next paragraph if this one only contained image(s)
                 }
             }
+
+            // Process text content within the paragraph
+            List<HTMLWord> words = new ArrayList<>();
+            processNodes(p.childNodes(), words); // Use a recursive helper
 
             if (!words.isEmpty()) {
                 contentStack.add(new HTMLContent(words));
@@ -276,6 +289,54 @@ public class WattpadClient {
 
         return new RenderedPage(part.getTitle(), contentStack);
     }
+
+    // Helper to process text nodes recursively, handling styles
+    private void processNodes(List<Node> nodes, List<HTMLWord> words) {
+        for (Node node : nodes) {
+            if (node instanceof TextNode) {
+                String text = ((TextNode) node).text(); // Don't trim yet, preserve spaces
+                if (!text.isEmpty()) {
+                    // Split text into words/tokens respecting spaces, add with GENERAL style
+                    for(String word : text.split("(?<=\\s)|(?=\\s+)")) { // Split keeping spaces
+                        if (!word.isEmpty()) words.add(new HTMLWord(word, HTMLStyle.GENERAL));
+                    }
+                }
+            } else if (node instanceof Element) {
+                Element element = (Element) node;
+                HTMLStyle style = HTMLStyle.GENERAL; // Default style for this element's children
+                String tagName = element.tagName().toLowerCase();
+
+                if (tagName.equals("b") || tagName.equals("strong")) {
+                    style = HTMLStyle.BOLD;
+                } else if (tagName.equals("i") || tagName.equals("em")) {
+                    style = HTMLStyle.ITALIC;
+                }
+                // Add other style checks if needed (e.g., 'u' for underline)
+
+                // Recursively process children, applying the determined style
+                processStyledNodes(element.childNodes(), words, style);
+            }
+        }
+    }
+
+    // Helper to apply style during recursive processing
+    private void processStyledNodes(List<Node> nodes, List<HTMLWord> words, HTMLStyle style) {
+        for (Node node : nodes) {
+            if (node instanceof TextNode) {
+                String text = ((TextNode) node).text();
+                if (!text.isEmpty()) {
+                    for(String word : text.split("(?<=\\s)|(?=\\s+)")) {
+                        if (!word.isEmpty()) words.add(new HTMLWord(word, style)); // Apply parent style
+                    }
+                }
+            } else if (node instanceof Element) {
+                // Handle nested styling (e.g., bold inside italic) - recursively call main processor
+                // This allows nested elements to determine their own style overrides
+                processNodes(node.childNodes(), words);
+            }
+        }
+    }
+
 
     // --- Search & Browse Methods (Placeholder - Implement based on needs) ---
 
