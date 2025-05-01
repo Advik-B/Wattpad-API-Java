@@ -145,13 +145,12 @@ This project is licensed under the [MIT License](LICENSE.txt).
 
 For questions or support, feel free to reach out:
 - **Author**: Advik
-- **Email**: advik@example.com
-- **GitHub**: [github.com/your-username](https://github.com/your-username)
+- **GitHub**: [github.com/your-username](https://github.com/Advik-B)
 
 ---
 
 ## 🌐 Links
 
 - [Wattpad](https://www.wattpad.com)
-- [API Documentation](https://www.wattpad.com/api-docs)
-- [GitHub Repository](https://github.com/your-username/Wattpad-API)
+- ~~[API Documentation](https://www.wattpad.com/api-docs)~~ LMFAO WATTPAD DOES NOT HAVE DOCUMENTATION I HAD TO FIGURE ALL OF THIS OUT BY HAND
+- [GitHub Repository](https://github.com/Advik-B/Wattpad-API.jar)
