@@ -3,7 +3,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 
-public class User {
+public final class User {
     @SerializedName(value = "fullname", alternate = {"name"})
     private final String name;
 
