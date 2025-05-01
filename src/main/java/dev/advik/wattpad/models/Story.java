@@ -2,10 +2,13 @@ package dev.advik.wattpad.models;
 
 import com.google.gson.*;
 import com.google.gson.annotations.SerializedName;
-import dev.advik.wattpad.WattpadClient; // Forward reference
+import dev.advik.wattpad.WattpadClient;
 import dev.advik.wattpad.exceptions.WattpadException;
 
 import java.lang.reflect.Type;
+import java.time.LocalDateTime; // Import if needed for the adapter below
+import java.time.OffsetDateTime; // Import for robust parsing
+import java.time.format.DateTimeParseException; // Import for error handling
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -44,22 +47,21 @@ public final class Story {
 
     // --- Static Factory Methods ---
 
-    public static Story fromJsonStory(JsonObject json) {
-        // Use a custom deserializer to handle potential structure variations if needed,
-        // or rely on Gson's default mapping with @SerializedName.
-        Gson gson = new GsonBuilder()
-                .registerTypeAdapter(Story.class, new StoryDeserializer())
-                .create();
+    // Modified: Accept Gson instance
+    public static Story fromJsonStory(JsonObject json, Gson gson) {
+        // Use the passed-in Gson instance which has all adapters registered
         return gson.fromJson(json, Story.class);
     }
 
-    public static Story fromJsonPartResponse(JsonObject json) {
+    // Modified: Accept Gson instance
+    public static Story fromJsonPartResponse(JsonObject json, Gson gson) {
         // The actual story data is nested under "group" in the part response
         JsonObject storyJson = json.getAsJsonObject("group");
         if (storyJson == null) {
             throw new WattpadException("Invalid part response JSON: Missing 'group' object. JSON: " + json);
         }
-        return fromJsonStory(storyJson); // Deserialize the nested object
+        // Pass the Gson instance down
+        return fromJsonStory(storyJson, gson);
     }
 
 
@@ -101,7 +103,7 @@ public final class Story {
     }
 
     // --- Custom Gson Deserializer ---
-    public class StoryDeserializer implements JsonDeserializer<Story> {
+    public static class StoryDeserializer implements JsonDeserializer<Story> {
         @Override
         public Story deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
             JsonObject jsonObj = json.getAsJsonObject();
@@ -112,21 +114,37 @@ public final class Story {
             User author;
             if (jsonObj.has("user") && jsonObj.get("user").isJsonObject()) {
                 JsonObject userJson = jsonObj.getAsJsonObject("user");
-                author = User.fromJson(userJson); // Call your static method here!
+                // Option 1: Keep using static factory (works fine here)
+                author = User.fromJson(userJson);
+                // Option 2: Use context if User had a registered deserializer (more standard Gson way)
+                // author = context.deserialize(userJson, User.class);
             } else {
                 // Handle cases where the user object is missing or not an object
                 throw new JsonParseException("Story JSON is missing a valid 'user' object.");
             }
 
-            String description = jsonObj.has("description") ? jsonObj.get("description").getAsString() : "";
-            String cover = jsonObj.has("cover") ? jsonObj.get("cover").getAsString() : null;
-            String url = jsonObj.has("url") ? jsonObj.get("url").getAsString() : null;
-            PublishedPart lastPublishedPart = context.deserialize(jsonObj.get("lastPublishedPart"), PublishedPart.class);
+            String description = jsonObj.has("description") && !jsonObj.get("description").isJsonNull()
+                    ? jsonObj.get("description").getAsString() : "";
+            String cover = jsonObj.has("cover") && !jsonObj.get("cover").isJsonNull()
+                    ? jsonObj.get("cover").getAsString() : null;
+            String url = jsonObj.has("url") && !jsonObj.get("url").isJsonNull()
+                    ? jsonObj.get("url").getAsString() : null;
+
+            // This line now uses the context from the correctly configured Gson instance
+            PublishedPart lastPublishedPart = null;
+            if (jsonObj.has("lastPublishedPart") && jsonObj.get("lastPublishedPart").isJsonObject()) {
+                lastPublishedPart = context.deserialize(jsonObj.get("lastPublishedPart"), PublishedPart.class);
+            } else if (jsonObj.has("lastPublishedPart") && !jsonObj.get("lastPublishedPart").isJsonNull()) {
+                // Handle case where it exists but isn't an object (error or log)
+                System.err.println("Warning: 'lastPublishedPart' field was present but not a JSON object in Story JSON: " + jsonObj.get("id").getAsLong());
+            }
+
 
             List<Part> partsList = new ArrayList<>();
             if (jsonObj.has("parts") && jsonObj.get("parts").isJsonArray()) {
                 JsonArray partsArray = jsonObj.getAsJsonArray("parts");
                 for (JsonElement partElement : partsArray) {
+                    // This also uses the correct context
                     partsList.add(context.deserialize(partElement, Part.class));
                 }
             }
@@ -137,7 +155,9 @@ public final class Story {
             if (jsonObj.has("tags") && jsonObj.get("tags").isJsonArray()) {
                 JsonArray tagsArray = jsonObj.getAsJsonArray("tags");
                 for (JsonElement tagElement : tagsArray) {
-                    tagsList.add(tagElement.getAsString());
+                    if (tagElement.isJsonPrimitive() && tagElement.getAsJsonPrimitive().isString()) {
+                        tagsList.add(tagElement.getAsString());
+                    }
                 }
             }
 
