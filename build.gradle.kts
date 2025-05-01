@@ -1,7 +1,6 @@
 plugins {
     id("java")
-    // Apply the shadow plugin to build fat JARs
-    id("com.github.johnrengelman.shadow") version "8.1.1" // Use a recent version
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "dev.advik"
@@ -45,14 +44,19 @@ tasks.jar {
 }
 
 tasks.shadowJar {
+    archiveBaseName.set(project.name) // Base name for the JAR file
+    archiveClassifier.set("") // Set classifier to empty string to avoid '-all' suffix (optional)
+    archiveVersion.set(project.version.toString())
+
     manifest {
         attributes(
             "Implementation-Title" to project.name,
             "Implementation-Version" to project.version,
-            "Main-Class" to "dev.advik.Main" // Set the main class for the fat JAR
+            "Main-Class" to "dev.advik.Main" // Specify the main class here
         )
     }
-    // You might want to configure the output JAR name if needed
-    // archiveBaseName.set("my-fat-jar-name")
-    // archiveClassifier.set("") // Set to empty string to avoid "-all" suffix if desired
+}
+
+tasks.build {
+    dependsOn(tasks.shadowJar)
 }
