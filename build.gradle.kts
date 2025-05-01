@@ -26,10 +26,7 @@ dependencies {
 
 java {
     sourceCompatibility = JavaVersion.VERSION_11 // Good balance for library compatibility
-//    targetCompatibility = JavaVersion.VERSION_11
-    // For Android compatibility, you might target Java 8 (Android API level dependent)
-//     sourceCompatibility = JavaVersion.VERSION_1_8
-     targetCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_11
 
     // Automatically add Javadoc and Sources jars when publishing
     withJavadocJar()
