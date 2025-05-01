@@ -1,4 +1,4 @@
-package dev.advik.wattpad.types;
+package dev.advik.wattpad.models;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
