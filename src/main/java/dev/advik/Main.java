@@ -14,7 +14,6 @@ public class Main {
         // Build the client (using default settings with caching enabled)
         WattpadClient client = new WattpadClient.Builder()
                 .useCache(true) // Explicitly enable caching (default is true anyway)
-                .cacheDirectory("my-wattpad-cache") // Optional: customize cache location
                 .build();
 
         long storyId = 336166598L; // Wounded Love example ID
