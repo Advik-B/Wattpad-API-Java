@@ -108,7 +108,16 @@ public final class Story {
 
             long id = jsonObj.get("id").getAsLong();
             String title = jsonObj.get("title").getAsString();
-            User author = context.deserialize(jsonObj.get("user"), User.class);
+
+            User author;
+            if (jsonObj.has("user") && jsonObj.get("user").isJsonObject()) {
+                JsonObject userJson = jsonObj.getAsJsonObject("user");
+                author = User.fromJson(userJson); // Call your static method here!
+            } else {
+                // Handle cases where the user object is missing or not an object
+                throw new JsonParseException("Story JSON is missing a valid 'user' object.");
+            }
+
             String description = jsonObj.has("description") ? jsonObj.get("description").getAsString() : "";
             String cover = jsonObj.has("cover") ? jsonObj.get("cover").getAsString() : null;
             String url = jsonObj.has("url") ? jsonObj.get("url").getAsString() : null;
