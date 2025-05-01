@@ -1,15 +1,8 @@
 name: Publish to GitHub Packages
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '**.kt'
-      - '**.java'
-      - 'build.gradle.kts'
-      - 'settings.gradle.kts'
-      - 'src/**'
+  release:
+    types: [published]
 
 jobs:
   publish:
