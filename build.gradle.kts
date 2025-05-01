@@ -19,9 +19,6 @@ dependencies {
     // HTML Parsing (Jsoup is the standard Java equivalent to BeautifulSoup)
     implementation("org.jsoup:jsoup:1.17.2")
 
-    testImplementation(platform("org.junit:junit-bom:5.10.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-
 }
 
 java {
