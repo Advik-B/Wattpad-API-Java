@@ -4,21 +4,11 @@ plugins {
     id("maven-publish")
 }
 
-group = "io.github.advik-b"
-version = "1.1"
+group = "dev.advik"
+version = System.getenv("API_VERSION") ?: "1.1"
 
 repositories {
     mavenCentral()
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/Advik-B/Wattpad-API.jar")
-            credentials {
-                username = (project.findProperty("gpr.user") ?: System.getenv("USERNAME")) as String?
-                password = (project.findProperty("gpr.token") ?: System.getenv("TOKEN")) as String?
-            }
-        }
-    }
 }
 
 dependencies {
@@ -73,16 +63,14 @@ tasks.build {
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
+            artifactId = project.name.lowercase()
             from(components["java"])
-
-            groupId = group as String
-            version = version
         }
     }
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/Advik-B/Wattpad-API.jar")
+            url = uri("https://maven.pkg.github.com/Advik-B/Wattpad-API-Java")
             credentials {
                 username = (project.findProperty("gpr.user") ?: System.getenv("USERNAME")) as String?
                 password = (project.findProperty("gpr.token") ?: System.getenv("TOKEN")) as String?
