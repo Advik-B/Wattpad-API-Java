@@ -70,7 +70,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/Advik-B/Wattpad-API.Jar")
+            url = uri("https://maven.pkg.github.com/Advik-B/Wattpad-API.jar")
             credentials {
                 username = (project.findProperty("gpr.user") ?: System.getenv("USERNAME")) as String?
                 password = (project.findProperty("gpr.token") ?: System.getenv("TOKEN")) as String?
